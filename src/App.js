@@ -1,23 +1,69 @@
 import logo from './logo.svg';
 import './App.css';
-import { useEffect, useState } from 'react';
+import { Children, useEffect, useState } from 'react';
+import { Routes, Route, Link, Navigate } from "react-router-dom";
+import { Home } from './Home';
+import { Phone } from './Phone';
 
 function App() {
   return (
     <div className="App">
-      <Phonelist />
+
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/mobiles" element={
+          <ProtectedRoute>
+            <Phonelist />
+          </ProtectedRoute>
+        }
+        />
+      </Routes>
 
     </div>
   );
 }
 
+
+function ProtectedRoute({ children }) {
+  const isAuth = localStorage.getItem("token");
+  console.log(isAuth)
+  return isAuth ? children : <Navigate replace to="/" />
+}
+
+
+function CheckAuth(data) {
+  if (data.status === 401) {
+    console.log("unauthorized");
+    throw Error("unauthorized");
+  }
+  else {
+    return data.json()
+
+  }
+
+}
+
+function logout() {
+  localStorage.removeItem("token")
+  window.location.href = "/"
+
+}
+
+
 function Phonelist() {
   const [mobiles, setMobiles] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:4000/mobiles")
-      .then((data) => data.json())
+    // protected APIS
+    fetch("http://localhost:4000/mobiles", {
+      method: "GET",
+      headers: {
+        "x-auth-token": localStorage.getItem("token")
+      },
+    })
+      .then((data) => CheckAuth(data))
       .then((mbs) => setMobiles(mbs))
+      .catch((err) => logout())
 
   }, [])
 
@@ -29,21 +75,6 @@ function Phonelist() {
         <Phone key={index} mobile={mb} />
       ))}
 
-    </div>
-  )
-}
-
-function Phone({ mobile }) {
-  // const mobiles = {
-  //   // model: "OnePlus 9 5G",
-  //   // img: "https://m.media-amazon.com/images/I/61fy+u9uqPL._SX679_.jpg",
-  //   // company: "Oneplus"
-  // }
-  return (
-    <div className='phone-container'>
-      <img src={mobile.img} alt={mobile.model} className="phone-picture" ></img>
-      <h2 className='phone-name'>{mobile.model}</h2>
-      <p className='phone-company'>{mobile.company}</p>
     </div>
   )
 }
